@@ -1,11 +1,12 @@
 # Architecture Diagram
 
-This directory contains the architecture diagram for the CGNAT VPS Gateway solution.
+This directory contains the Mermaid source for the architecture diagram.
 
 ## Files
 
-- `diagram.mmd` - Mermaid source file
-- `diagram.png` - Rendered PNG (placeholder)
+- `diagram.mmd` - Mermaid source file (for editing/customization)
+- `../assets/architecture-diagram.png` - Rendered diagram used in README
+- `../assets/hero.png` - Hero image for repository/articles
 
 ## Rendering the Diagram
 
