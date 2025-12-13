@@ -1,5 +1,7 @@
 # CGNAT VPS Gateway
 
+![CGNAT VPS Gateway Architecture](assets/hero.png)
+
 A **production-ready, open-source architecture** for exposing home servers behind CGNAT using a VPS gateway, a persistent WireGuard tunnel, Cloudflare as the security edge, and Traefik as a reverse proxy.
 
 This repository documents a **clean, auditable alternative** to proprietary tunneling solutions — designed for self-hosters who want full control over their network edge.
