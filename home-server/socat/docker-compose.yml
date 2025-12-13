@@ -1,0 +1,97 @@
+version: "3.8"
+
+# =============================================================================
+# Home Server socat Bridge Configuration
+# =============================================================================
+# This file provides standalone socat configuration for the home server.
+# The main docker-compose.yml in the parent directory already includes socat.
+#
+# socat on the home server:
+# - Listens on the WireGuard interface IP (10.8.0.2)
+# - Forwards traffic to local applications
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # socat TCP Bridge - Immich
+  # ---------------------------------------------------------------------------
+  # Receives traffic from VPS via WireGuard tunnel.
+  #
+  # Traffic flow:
+  # 1. VPS socat sends to 10.8.0.2:2283
+  # 2. WireGuard delivers to this host
+  # 3. This socat receives on 10.8.0.2:2283
+  # 4. Forwards to localhost:2283 (Immich)
+  #
+  # bind=10.8.0.2 ensures this only listens on the WireGuard interface,
+  # not on LAN or other interfaces.
+  # ---------------------------------------------------------------------------
+  socat-immich:
+    image: alpine/socat:latest
+    container_name: socat-immich
+    restart: unless-stopped
+    command: >
+      TCP4-LISTEN:2283,bind=10.8.0.2,fork,reuseaddr
+      TCP4:127.0.0.1:2283
+    # Host network required to:
+    # - Bind to WireGuard interface IP
+    # - Access applications on localhost
+    network_mode: host
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+
+  # ---------------------------------------------------------------------------
+  # Alternative: Connect to Docker container by name
+  # ---------------------------------------------------------------------------
+  # If your application runs in Docker with a known network, you can connect
+  # directly to the container.
+  #
+  # This requires:
+  # 1. Application container in same docker-compose or external network
+  # 2. Knowing the container name or service name
+  # ---------------------------------------------------------------------------
+  # socat-immich-docker:
+  #   image: alpine/socat:latest
+  #   container_name: socat-immich-docker
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:2283,fork,reuseaddr TCP4:immich-server:2283
+  #   ports:
+  #     - "10.8.0.2:2283:2283"
+  #   networks:
+  #     - immich_default
+
+  # ---------------------------------------------------------------------------
+  # Additional Applications
+  # ---------------------------------------------------------------------------
+
+  # Jellyfin
+  # socat-jellyfin:
+  #   image: alpine/socat:latest
+  #   container_name: socat-jellyfin
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8096,bind=10.8.0.2,fork,reuseaddr TCP4:127.0.0.1:8096
+  #   network_mode: host
+
+  # Nextcloud
+  # socat-nextcloud:
+  #   image: alpine/socat:latest
+  #   container_name: socat-nextcloud
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8080,bind=10.8.0.2,fork,reuseaddr TCP4:127.0.0.1:8080
+  #   network_mode: host
+
+  # Home Assistant
+  # socat-homeassistant:
+  #   image: alpine/socat:latest
+  #   container_name: socat-homeassistant
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8123,bind=10.8.0.2,fork,reuseaddr TCP4:127.0.0.1:8123
+  #   network_mode: host
+
+# External networks (uncomment if connecting to existing Docker networks)
+# networks:
+#   immich_default:
+#     external: true

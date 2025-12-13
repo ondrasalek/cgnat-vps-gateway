@@ -1,0 +1,101 @@
+version: "3.8"
+
+# =============================================================================
+# Home Server Docker Compose Configuration
+# =============================================================================
+# This file orchestrates services on the home server:
+# - socat: TCP bridge receiving traffic from WireGuard tunnel
+#
+# The WireGuard interface runs on the host (not in Docker) to ensure
+# stable tunnel connectivity and proper network routing.
+#
+# Prerequisites:
+# - WireGuard installed and configured on host
+# - WireGuard tunnel established to VPS
+# - target application running (e.g., Immich on port 2283)
+#
+# Usage:
+#   docker compose up -d
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # socat TCP Bridge - Immich
+  # ---------------------------------------------------------------------------
+  # Receives traffic from VPS via WireGuard and forwards to local application.
+  #
+  # Traffic flow:
+  # 1. VPS socat sends traffic to 10.8.0.2:2283 (this server's WireGuard IP)
+  # 2. This socat receives on port 2283 (bound to WireGuard interface)
+  # 3. Forwards to localhost:2283 where the application runs
+  # ---------------------------------------------------------------------------
+  socat-immich:
+    image: alpine/socat:latest
+    container_name: socat-immich
+    restart: unless-stopped
+    # Listen on the WireGuard interface IP specifically
+    # This prevents the service from being accessible on other interfaces
+    command: TCP4-LISTEN:2283,bind=10.8.0.2,fork,reuseaddr TCP4:host.docker.internal:2283
+    # Host network mode required to:
+    # - Bind to the WireGuard interface (10.8.0.2)
+    # - Access the application running on the host or in another container
+    network_mode: host
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  # ---------------------------------------------------------------------------
+  # Alternative: Connect to application in Docker network
+  # ---------------------------------------------------------------------------
+  # If your application runs in Docker, you might want to use bridge networking
+  # This example shows how to bridge to an application in the same compose file
+  # ---------------------------------------------------------------------------
+  # socat-immich-bridge:
+  #   image: alpine/socat:latest
+  #   container_name: socat-immich-bridge
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:2283,fork,reuseaddr TCP4:immich-server:2283
+  #   ports:
+  #     - "10.8.0.2:2283:2283"  # Bind only to WireGuard IP
+  #   networks:
+  #     - immich-network
+  #   depends_on:
+  #     - immich-server
+
+  # ---------------------------------------------------------------------------
+  # Additional Applications (Examples)
+  # ---------------------------------------------------------------------------
+  
+  # Jellyfin
+  # socat-jellyfin:
+  #   image: alpine/socat:latest
+  #   container_name: socat-jellyfin
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8096,bind=10.8.0.2,fork,reuseaddr TCP4:host.docker.internal:8096
+  #   network_mode: host
+
+  # Nextcloud
+  # socat-nextcloud:
+  #   image: alpine/socat:latest
+  #   container_name: socat-nextcloud
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8080,bind=10.8.0.2,fork,reuseaddr TCP4:host.docker.internal:8080
+  #   network_mode: host
+
+  # Home Assistant
+  # socat-homeassistant:
+  #   image: alpine/socat:latest
+  #   container_name: socat-homeassistant
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8123,bind=10.8.0.2,fork,reuseaddr TCP4:host.docker.internal:8123
+  #   network_mode: host
+
+# networks:
+#   immich-network:
+#     external: true

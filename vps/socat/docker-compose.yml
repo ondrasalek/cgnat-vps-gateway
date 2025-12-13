@@ -1,0 +1,89 @@
+version: "3.8"
+
+# =============================================================================
+# VPS socat Bridge Configuration
+# =============================================================================
+# This file provides an alternative, standalone socat configuration.
+# Use this if you want to run socat separately from the main docker-compose.yml
+#
+# The main docker-compose.yml in the parent directory already includes socat.
+# This file is provided for:
+# - Running socat on a different host
+# - Testing socat independently
+# - More granular container management
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # socat TCP Bridge - Immich
+  # ---------------------------------------------------------------------------
+  # Bridges port 2283 from VPS to home server's WireGuard IP.
+  #
+  # How it works:
+  # 1. Traefik forwards requests to localhost:2283
+  # 2. socat listens on port 2283
+  # 3. socat forwards to 10.8.0.2:2283 (home server via WireGuard)
+  # ---------------------------------------------------------------------------
+  socat-immich:
+    image: alpine/socat:latest
+    container_name: socat-immich
+    restart: unless-stopped
+    command: >
+      TCP4-LISTEN:2283,fork,reuseaddr
+      TCP4:10.8.0.2:2283
+    # Host network required to access WireGuard tunnel interface
+    # The wg0 interface exists on the host, not in Docker's network
+    network_mode: host
+    # Resource limits to prevent runaway processes
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  # ---------------------------------------------------------------------------
+  # Additional Applications (Examples)
+  # ---------------------------------------------------------------------------
+  
+  # Jellyfin media server
+  # socat-jellyfin:
+  #   image: alpine/socat:latest
+  #   container_name: socat-jellyfin
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8096,fork,reuseaddr TCP4:10.8.0.2:8096
+  #   network_mode: host
+
+  # Home Assistant
+  # socat-homeassistant:
+  #   image: alpine/socat:latest
+  #   container_name: socat-homeassistant
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8123,fork,reuseaddr TCP4:10.8.0.2:8123
+  #   network_mode: host
+
+  # Nextcloud
+  # socat-nextcloud:
+  #   image: alpine/socat:latest
+  #   container_name: socat-nextcloud
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8080,fork,reuseaddr TCP4:10.8.0.2:8080
+  #   network_mode: host
+
+  # Gitea
+  # socat-gitea:
+  #   image: alpine/socat:latest
+  #   container_name: socat-gitea
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:3000,fork,reuseaddr TCP4:10.8.0.2:3000
+  #   network_mode: host
+
+  # Gitea SSH (for git+ssh access)
+  # socat-gitea-ssh:
+  #   image: alpine/socat:latest
+  #   container_name: socat-gitea-ssh
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:2222,fork,reuseaddr TCP4:10.8.0.2:2222
+  #   network_mode: host

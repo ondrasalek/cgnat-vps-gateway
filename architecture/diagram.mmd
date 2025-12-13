@@ -1,0 +1,50 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#4a90d9', 'primaryTextColor': '#fff', 'primaryBorderColor': '#3a7bc8', 'lineColor': '#5c6370', 'secondaryColor': '#82aaff', 'tertiaryColor': '#292d3e'}}}%%
+flowchart LR
+    subgraph Internet["☁️ Internet"]
+        User["👤 User<br/>Browser/Client"]
+    end
+
+    subgraph Cloudflare["🛡️ Cloudflare"]
+        CF_WAF["WAF<br/>Bot Protection<br/>Rate Limiting"]
+        CF_TLS["TLS Termination<br/>Full (Strict)"]
+        CF_DNS["DNS<br/>app.example.com"]
+    end
+
+    subgraph VPS["🖥️ VPS (Public IP: 203.0.113.10)"]
+        Traefik["Traefik<br/>Reverse Proxy<br/>:443"]
+        Socat_VPS["socat<br/>TCP Bridge<br/>:2283 → 10.8.0.2:2283"]
+        WG_VPS["WireGuard<br/>10.8.0.1<br/>:51820"]
+    end
+
+    subgraph Tunnel["🔒 WireGuard Tunnel"]
+        WG_Tunnel["Encrypted Channel<br/>UDP :51820"]
+    end
+
+    subgraph Home["🏠 Home Server (Behind CGNAT)"]
+        WG_Home["WireGuard<br/>10.8.0.2<br/>Initiates Connection"]
+        Socat_Home["socat<br/>TCP Bridge<br/>:2283 → localhost:2283"]
+        App["Application<br/>e.g., Immich<br/>:2283"]
+    end
+
+    User -->|"HTTPS Request"| CF_DNS
+    CF_DNS --> CF_WAF
+    CF_WAF --> CF_TLS
+    CF_TLS -->|"Origin Request"| Traefik
+    Traefik -->|"Route to backend"| Socat_VPS
+    Socat_VPS -->|"Forward via WireGuard IP"| WG_VPS
+    WG_VPS <-->|"Encrypted Tunnel"| WG_Tunnel
+    WG_Tunnel <-->|"Outbound Connection"| WG_Home
+    WG_Home -->|"Receive traffic"| Socat_Home
+    Socat_Home -->|"Forward to app"| App
+
+    classDef internet fill:#e8f4f8,stroke:#4a90d9,color:#333
+    classDef cloudflare fill:#f48120,stroke:#e67316,color:#fff
+    classDef vps fill:#4a90d9,stroke:#3a7bc8,color:#fff
+    classDef tunnel fill:#6c5ce7,stroke:#5b4cdb,color:#fff
+    classDef home fill:#00b894,stroke:#00a382,color:#fff
+
+    class User internet
+    class CF_WAF,CF_TLS,CF_DNS cloudflare
+    class Traefik,Socat_VPS,WG_VPS vps
+    class WG_Tunnel tunnel
+    class WG_Home,Socat_Home,App home

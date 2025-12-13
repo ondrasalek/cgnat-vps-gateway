@@ -1,0 +1,72 @@
+# =============================================================================
+# VPS WireGuard Configuration
+# =============================================================================
+# This is the WireGuard configuration for the VPS (server side).
+# The VPS acts as the WireGuard server, listening for connections from
+# the home server.
+#
+# IMPORTANT:
+# - Replace [VPS_PRIVATE_KEY] with your generated private key
+# - Replace [HOME_PUBLIC_KEY] with the home server's public key
+# - These are EXAMPLE values - generate your own keys!
+#
+# Key generation:
+#   wg genkey | tee privatekey | wg pubkey > publickey
+# =============================================================================
+
+[Interface]
+# -----------------------------------------------------------------------------
+# VPS interface configuration
+# -----------------------------------------------------------------------------
+
+# WireGuard IP address on the VPS
+# This is the VPS's address in the WireGuard tunnel network
+Address = 10.8.0.1/24
+
+# Port to listen for WireGuard connections
+# This port must be open in your VPS firewall
+ListenPort = 51820
+
+# VPS private key (NEVER share this)
+# Generate with: wg genkey
+PrivateKey = [VPS_PRIVATE_KEY]
+
+# MTU setting
+# 1280 is a safe value that works through most networks
+# Higher values (1400-1420) may improve performance if your network supports it
+MTU = 1280
+
+# Post-up commands (optional)
+# Enable IP forwarding for routing
+PostUp = sysctl -w net.ipv4.ip_forward=1
+# Uncomment to add iptables rules if needed:
+# PostUp = iptables -A FORWARD -i wg0 -j ACCEPT
+# PostUp = iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+# Post-down commands (optional)
+# PostDown = iptables -D FORWARD -i wg0 -j ACCEPT
+# PostDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+[Peer]
+# -----------------------------------------------------------------------------
+# Home server peer configuration
+# -----------------------------------------------------------------------------
+
+# Home server's public key
+# Get this from the home server after generating its keys
+PublicKey = [HOME_PUBLIC_KEY]
+
+# Allowed IPs determine what traffic is routed through this peer
+# 10.8.0.2/32 means only traffic destined for the home server's WireGuard IP
+AllowedIPs = 10.8.0.2/32
+
+# PersistentKeepalive
+# This is CRITICAL for connections behind NAT/CGNAT
+# The home server initiates the connection and sends keepalives to maintain it
+# Without this, the NAT mapping would expire and the tunnel would break
+# 25 seconds is the recommended value (must be less than typical NAT timeout)
+PersistentKeepalive = 25
+
+# Optional: Pre-shared key for additional security layer
+# Generate with: wg genpsk
+# PresharedKey = [PRESHARED_KEY]

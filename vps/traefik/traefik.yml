@@ -1,0 +1,81 @@
+# =============================================================================
+# Traefik Static Configuration
+# =============================================================================
+# This file configures Traefik's core behavior:
+# - Entrypoints (ports Traefik listens on)
+# - Providers (where Traefik gets routing configuration)
+# - Logging settings
+#
+# For dynamic routing configuration, see dynamic.yml
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Global Settings
+# -----------------------------------------------------------------------------
+global:
+  # Disable anonymous usage statistics
+  sendAnonymousUsage: false
+  # Don't check for updates
+  checkNewVersion: false
+
+# -----------------------------------------------------------------------------
+# API and Dashboard
+# -----------------------------------------------------------------------------
+# The dashboard is disabled in production for security
+# Enable only for debugging, and secure with authentication
+api:
+  dashboard: false
+  insecure: false
+
+# -----------------------------------------------------------------------------
+# Logging
+# -----------------------------------------------------------------------------
+log:
+  level: INFO
+  # Uncomment for JSON logging (better for log aggregation)
+  # format: json
+
+# Access logs for debugging and audit
+accessLog:
+  filePath: /var/log/traefik/access.log
+  # Buffer logs to reduce disk I/O
+  bufferingSize: 100
+  filters:
+    # Only log errors and retries by default
+    statusCodes:
+      - "400-499"
+      - "500-599"
+
+# -----------------------------------------------------------------------------
+# Entrypoints
+# -----------------------------------------------------------------------------
+# Traefik listens on these ports for incoming connections
+entryPoints:
+  # HTTPS entrypoint - the only public-facing port
+  websecure:
+    address: ":443"
+    # HTTP/2 and HTTP/3 support
+    http2:
+      maxConcurrentStreams: 250
+    # Connection timeouts
+    transport:
+      respondingTimeouts:
+        readTimeout: 60s
+        writeTimeout: 60s
+        idleTimeout: 180s
+
+# -----------------------------------------------------------------------------
+# Providers
+# -----------------------------------------------------------------------------
+# Traefik gets routing configuration from these sources
+providers:
+  # File provider for static configuration
+  file:
+    filename: /etc/traefik/dynamic.yml
+    watch: true
+
+# -----------------------------------------------------------------------------
+# TLS Configuration
+# -----------------------------------------------------------------------------
+# Using Cloudflare origin certificates, not Let's Encrypt
+# Certificates are mounted in the container and referenced in dynamic.yml

@@ -1,0 +1,101 @@
+version: "3.8"
+
+# =============================================================================
+# VPS Docker Compose Configuration
+# =============================================================================
+# This file orchestrates all services running on the VPS:
+# - Traefik: Reverse proxy receiving traffic from Cloudflare
+# - socat: TCP bridge forwarding traffic to WireGuard peer
+#
+# Prerequisites:
+# - WireGuard configured and running on host (network_mode: host)
+# - Cloudflare origin certificate placed in ./traefik/certs/
+# - Environment variables configured in .env
+#
+# Usage:
+#   docker compose up -d
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Traefik Reverse Proxy
+  # ---------------------------------------------------------------------------
+  # Receives HTTPS traffic from Cloudflare and routes to internal services.
+  # Uses static entrypoints for predictable behavior.
+  # ---------------------------------------------------------------------------
+  traefik:
+    image: traefik:v2.11
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      # Only expose HTTPS - HTTP should not be used when behind Cloudflare
+      - "443:443"
+    environment:
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Traefik static configuration
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      # Dynamic configuration for routers and services
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      # Cloudflare origin certificate and private key
+      - ./traefik/certs:/etc/traefik/certs:ro
+      # Docker socket for provider (optional, not used in this setup)
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+    # Health check to ensure Traefik is responding
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # socat TCP Bridge - Immich (Example Application)
+  # ---------------------------------------------------------------------------
+  # Bridges TCP connections from Traefik to the WireGuard peer IP.
+  # This container listens on port 2283 and forwards to 10.8.0.2:2283.
+  #
+  # Why socat?
+  # - Protocol-agnostic: Works with any TCP application
+  # - Simple: No complex routing configuration
+  # - Transparent: Easy to debug and understand
+  # ---------------------------------------------------------------------------
+  socat-immich:
+    image: alpine/socat:latest
+    container_name: socat-immich
+    restart: unless-stopped
+    # Command breakdown:
+    # TCP4-LISTEN:2283  - Listen on TCP port 2283
+    # fork              - Fork a new process for each connection
+    # reuseaddr         - Allow reusing the address immediately after restart
+    # TCP4:10.8.0.2:2283 - Forward to home server's WireGuard IP
+    command: TCP4-LISTEN:2283,fork,reuseaddr TCP4:10.8.0.2:2283
+    # Use host network to access WireGuard interface
+    # The WireGuard tunnel creates a route to 10.8.0.0/24 on the host
+    network_mode: host
+    depends_on:
+      - traefik
+
+  # ---------------------------------------------------------------------------
+  # Additional socat bridges can be added here for other applications
+  # ---------------------------------------------------------------------------
+  # socat-jellyfin:
+  #   image: alpine/socat:latest
+  #   container_name: socat-jellyfin
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8096,fork,reuseaddr TCP4:10.8.0.2:8096
+  #   network_mode: host
+
+  # socat-nextcloud:
+  #   image: alpine/socat:latest
+  #   container_name: socat-nextcloud
+  #   restart: unless-stopped
+  #   command: TCP4-LISTEN:8080,fork,reuseaddr TCP4:10.8.0.2:8080
+  #   network_mode: host
+
+networks:
+  proxy:
+    name: proxy
+    driver: bridge

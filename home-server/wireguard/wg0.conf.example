@@ -1,0 +1,86 @@
+# =============================================================================
+# Home Server WireGuard Configuration
+# =============================================================================
+# This is the WireGuard configuration for the home server (client side).
+# The home server initiates the connection to the VPS, which is critical
+# because it bypasses CGNAT restrictions.
+#
+# IMPORTANT:
+# - Replace [HOME_PRIVATE_KEY] with your generated private key
+# - Replace [VPS_PUBLIC_KEY] with the VPS's public key
+# - Replace 203.0.113.10 with your actual VPS public IP
+# - These are EXAMPLE values - generate your own keys!
+#
+# Key generation:
+#   wg genkey | tee privatekey | wg pubkey > publickey
+# =============================================================================
+
+[Interface]
+# -----------------------------------------------------------------------------
+# Home server interface configuration
+# -----------------------------------------------------------------------------
+
+# WireGuard IP address on the home server
+# This is the home server's address in the WireGuard tunnel network
+Address = 10.8.0.2/24
+
+# Home server private key (NEVER share this)
+# Generate with: wg genkey
+PrivateKey = [HOME_PRIVATE_KEY]
+
+# MTU setting
+# 1280 is a safe value that works through most networks, including CGNAT
+# Your ISP's CGNAT may add encapsulation overhead, so lower MTU is safer
+MTU = 1280
+
+# DNS (optional)
+# Uncomment if you want to route DNS through the VPS
+# DNS = 1.1.1.1
+
+# Post-up commands (optional)
+# PostUp = iptables -A FORWARD -i wg0 -j ACCEPT
+
+# Post-down commands (optional)
+# PostDown = iptables -D FORWARD -i wg0 -j ACCEPT
+
+[Peer]
+# -----------------------------------------------------------------------------
+# VPS peer configuration
+# -----------------------------------------------------------------------------
+
+# VPS's public key
+# Get this from the VPS after generating its keys
+PublicKey = [VPS_PUBLIC_KEY]
+
+# VPS endpoint - the public IP and port of the VPS
+# This is where the home server will connect to establish the tunnel
+# The home server initiates the connection OUTBOUND, bypassing CGNAT
+Endpoint = 203.0.113.10:51820
+
+# Allowed IPs determine what traffic is routed through this peer
+# 10.8.0.1/32 means only traffic destined for the VPS's WireGuard IP
+# This is a "split tunnel" configuration - only tunnel traffic goes through VPN
+AllowedIPs = 10.8.0.1/32
+
+# PersistentKeepalive - CRITICAL for CGNAT
+# -----------------------------------------------------------------------------
+# This setting is essential when behind NAT/CGNAT!
+# 
+# How it works:
+# - Home server sends a keepalive packet every 25 seconds
+# - This maintains the NAT mapping at the ISP's CGNAT device
+# - Without this, the NAT mapping expires after 30-60 seconds of inactivity
+# - An expired mapping means VPS can't reach home server
+#
+# Why 25 seconds:
+# - Most NAT devices have ~30-60 second timeout
+# - 25 seconds provides safety margin
+# - Lower values increase overhead but are more reliable
+# - Higher values risk NAT timeout and connection drops
+# -----------------------------------------------------------------------------
+PersistentKeepalive = 25
+
+# Optional: Pre-shared key for additional security layer
+# Must match the key configured on VPS
+# Generate with: wg genpsk
+# PresharedKey = [PRESHARED_KEY]
