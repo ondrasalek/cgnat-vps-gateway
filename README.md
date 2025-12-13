@@ -162,7 +162,34 @@ High-level steps:
 3. Deploy home server bridge
 4. Configure Cloudflare DNS and WAF
 
-Detailed instructions are provided in the `vps/` and `home-server/` directories.
+---
+
+## Documentation
+
+### VPS Setup
+
+| Document | Description |
+|----------|-------------|
+| [vps/docker-compose.yml](vps/docker-compose.yml) | Main VPS services (Traefik + socat) |
+| [vps/traefik/README.md](vps/traefik/README.md) | Traefik configuration and certificates |
+| [vps/wireguard/README.md](vps/wireguard/README.md) | WireGuard server setup |
+| [vps/socat/README.md](vps/socat/README.md) | TCP bridge configuration |
+
+### Home Server Setup
+
+| Document | Description |
+|----------|-------------|
+| [home-server/docker-compose.yml](home-server/docker-compose.yml) | Home server services |
+| [home-server/wireguard/README.md](home-server/wireguard/README.md) | WireGuard client + CGNAT guidance |
+| [home-server/socat/README.md](home-server/socat/README.md) | Bridge to local applications |
+
+### Cloudflare & Security
+
+| Document | Description |
+|----------|-------------|
+| [cloudflare/firewall-rules.md](cloudflare/firewall-rules.md) | DNS, SSL, WAF configuration |
+| [security/hardening.md](security/hardening.md) | VPS, Docker, WireGuard hardening |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Common issues and solutions |
 
 ---
 
