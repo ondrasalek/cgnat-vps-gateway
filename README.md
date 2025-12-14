@@ -1,5 +1,12 @@
 # CGNAT VPS Gateway
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/ondrasalek/cgnat-vps-gateway?style=social)](https://github.com/ondrasalek/cgnat-vps-gateway)
+[![WireGuard](https://img.shields.io/badge/WireGuard-88171A?logo=wireguard&logoColor=white)](https://www.wireguard.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Traefik](https://img.shields.io/badge/Traefik-24A1C1?logo=traefikproxy&logoColor=white)](https://traefik.io/)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-F38020?logo=cloudflare&logoColor=white)](https://www.cloudflare.com/)
+
 ![CGNAT VPS Gateway Architecture](assets/hero.png)
 
 A **production-ready, open-source architecture** for exposing home servers behind CGNAT using a VPS gateway, a persistent WireGuard tunnel, Cloudflare as the security edge, and Traefik as a reverse proxy.
